@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Физическая Лаборатория v4</title>
+    <style>
+        :root {
+            --primary: #2980b9;
+            --accent: #e74c3c;
+            --dark: #2c3e50;
+            --bg: #f4f6f7;
+            --card-bg: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        
+        body { 
+            background-color: var(--bg); 
+            color: var(--dark); 
+            line-height: 1.6; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            width: 100%; /* На весь экран */
+        }
+
+        header { text-align: center; margin-bottom: 30px; max-width: 100%; }
+        h1 { color: var(--primary); font-size: 2.2rem; margin-bottom: 10px; }
+        p.subtitle { color: #7f8c8d; font-size: 1.2rem; }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-bottom: 40px; width: 100%;
+        }
+        .tab-btn {
+            background: white; border: none; padding: 14px 28px; border-radius: 30px;
+            cursor: pointer; font-weight: bold; color: var(--dark); transition: 0.3s; font-size: 1.05rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .tab-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4); }
+
+        /* Sections - УБРАНО max-width ДЛЯ ПОЛНОЙ ШИРИНЫ */
+        .section { display: none; width: 100%; animation: fadeIn 0.5s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+
+        .card {
+            background: var(--card-bg); border-radius: 24px; padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08); margin-bottom: 30px;
+            width: 100%; /* На всю ширину */
+        }
+
+        /* Containers */
+        .viz-container {
+            background: #fff; border: 2px dashed #bdc3c7; border-radius: 20px;
+            padding: 30px; margin: 30px 0; position: relative; 
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+            min-height: 450px;
+        }
+        canvas { max-width: 100%; height: auto; display: block; }
+        svg { width: 100%; height: auto; max-height: 500px; }
+
+        /* Controls & Quiz */
+        .controls { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+        button.action-btn {
+            background: var(--primary); color: white; border: none; padding: 14px 32px;
+            border-radius: 50px; font-size: 1.1rem; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        button.action-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        
+        .quiz-box {
+            background: #ebf5fb; border-left: 6px solid var(--primary);
+            padding: 25px; border-radius: 0 16px 16px 0; margin-top: 30px;
+        }
+        .quiz-question { font-weight: bold; font-size: 1.2rem; margin-bottom: 15px; }
+        .hint { font-size: 1rem; color: #7f8c8d; margin-top: 12px; font-style: italic; }
+
+        /* === СТИЛИ ДЛЯ ЭЛЕКТРИЧЕСКОЙ ЦЕПИ (УВЕЛИЧЕННЫЕ) === */
+        .circuit-guide-column {
+            display: flex; flex-direction: column; gap: 20px; margin-bottom: 40px; align-items: center;
+        }
+        .guide-row {
+            display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 25px;
+            background: #f8f9fa; padding: 25px; border-radius: 16px; width: 100%; max-width: 900px;
+        }
+        .img-wrapper {
+            display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1;
+        }
+        .guide-label { 
+            font-size: 1rem; color: #7f8c8d; font-weight: bold; 
+            text-transform: uppercase; letter-spacing: 1px; 
+        }
+        
+        /* Стрелка между картинками - КРУПНЕЕ */
+        .arrow-icon {
+            font-size: 2.5rem; color: #95a5a6; font-weight: bold; 
+            margin-top: 10px; flex-shrink: 0;
+        }
+
+        /* УВЕЛИЧЕННЫЕ КАРТИНКИ ПРИБОРОВ */
+        .img-symbol, .img-real {
+            width: 100%; height: 250px; /* Было 80px */
+            object-fit: contain; 
+            background: white; border-radius: 12px; border: 2px solid #eee;
+            display: block;
+        }
+        .img-real { border-color: #d6eaf8; }
+
+        /* УВЕЛИЧЕННАЯ ОБЩАЯ СХЕМА */
+        .full-circuit-wrapper {
+            text-align: center; margin: 40px 0; padding: 30px;
+            background: #fdfefe; border: 2px solid #ecf0f1; border-radius: 20px;
+        }
+        .full-circuit-wrapper p { font-size: 1.2rem; margin-bottom: 20px; }
+        .full-circuit-img {
+            max-width: 100%; height: auto; max-height: 600px; /* Было 350px */
+            object-fit: contain; border-radius: 16px;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .nav-tabs { gap: 8px; }
+            .tab-btn { padding: 10px 18px; font-size: 0.95rem; }
+            .card { padding: 20px; }
+            .guide-row { flex-direction: column; gap: 15px; padding: 20px; }
+            .arrow-icon { transform: rotate(90deg); margin: 0; font-size: 2rem; }
+            .img-symbol, .img-real { height: 100px; }
+            .viz-container { min-height: 350px; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🔬 Физическая Лаборатория</h1>
+    <p class="subtitle">Механика • Электричество • Оптика</p>
+</header>
+
+<nav class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('pump')">1. Насос</button>
+    <button class="tab-btn" onclick="switchTab('circuit')">2. Электрическая цепь</button>
+    <button class="tab-btn" onclick="switchTab('laser')">3. Лазер и Зеркало</button>
+</nav>
+
+<!-- РАЗДЕЛ 1: НАСОС -->
+<div id="pump" class="section active">
+    <div class="card">
+        <h2>💧 Поршневой насос</h2>
+        <h3>Соберите Насос и перекачайте воду из большой бутыли в малую</h3>
+        <div class="viz-container">
+            <svg viewBox="0 0 600 500" id="pumpSvg">
+                <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2980b9" /></marker></defs>
+                
+                <rect x="50" y="380" width="120" height="80" rx="10" fill="#d6eaf8" stroke="#aed6f1" stroke-width="2"/>
+                <rect id="resWater" x="55" y="410" width="110" height="45" rx="5" fill="rgba(52, 152, 219, 0.8)" />
+                
+                <path d="M 110 380 L 110 280 L 180 280" stroke="#bdc3c7" stroke-width="14" fill="none" stroke-linecap="round"/>
+                <path d="M 180 260 L 180 120" stroke="#bdc3c7" stroke-width="14" fill="none" stroke-linecap="round"/>
+                <path d="M 200 280 L 280 280 L 280 380" stroke="#bdc3c7" stroke-width="14" fill="none" stroke-linecap="round"/>
+                <path d="M 280 380 L 400 380 L 400 250" stroke="#bdc3c7" stroke-width="14" fill="none" stroke-linecap="round"/>
+                
+                <circle cx="180" cy="280" r="20" fill="#bdc3c7" />
+                
+                <g transform="translate(145, 280)">
+                    <rect x="-12" y="-18" width="24" height="36" rx="4" fill="#7f8c8d" stroke="#34495e"/>
+                    <path id="v1" d="M -6 -12 L 6 0 L -6 12 Z" fill="#e74c3c" style="transition:transform 0.4s"/>
+                </g>
+                <g transform="translate(280, 320)">
+                    <rect x="-12" y="-18" width="24" height="36" rx="4" fill="#7f8c8d" stroke="#34495e"/>
+                    <path id="v2" d="M -6 12 L 6 0 L -6 -12 Z" fill="#e74c3c" style="transition:transform 0.4s"/>
+                </g>
+
+                <rect x="150" y="40" width="60" height="120" rx="5" fill="rgba(255,255,255,0.9)" stroke="#34495e" stroke-width="3"/>
+                <rect id="syringeWater" x="154" y="140" width="52" height="16" fill="rgba(52, 152, 219, 0.8)" />
+                
+                <g id="plunger">
+                    <rect x="155" y="140" width="50" height="15" rx="2" fill="#ecf0f1" stroke="#2c3e50"/>
+                    <rect x="175" y="-20" width="10" height="160" fill="#95a5a6" stroke="#2c3e50"/>
+                </g>
+
+                <path id="stream" d="M 400 250 Q 420 230 440 260" stroke="rgba(52, 152, 219, 0.8)" stroke-width="10" fill="none" opacity="0"/>
+
+                <path id="arrIn" d="M 110 330 L 110 290" stroke="#2980b9" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0"/>
+                <path id="arrOut" d="M 280 350 L 280 370" stroke="#2980b9" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0"/>
+                <path id="arrExit" d="M 400 300 L 400 260" stroke="#2980b9" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0"/>
+            </svg>
+        </div>
+        
+        <div class="controls">
+            <button class="action-btn" onclick="togglePump()" id="pumpBtn">▶ Запустить цикл</button>
+        </div>
+
+        <div class="quiz-box">
+            <div class="quiz-question">❓ Вопрос для обсуждения: Почему вода засасывается в шприц именно при поднятии поршня?</div>
+            <p style="color:#7f8c8d; font-size:1rem;">Подумайте и ответьте устно. Что происходит с давлением внутри цилиндра?</p>
+            <div class="hint">💡 Подсказка: Вспомните про атмосферное давление и разрежение.</div>
+        </div>
+    </div>
+</div>
+
+<!-- РАЗДЕЛ 2: ЭЛЕКТРИЧЕСКАЯ ЦЕПЬ -->
+<div id="circuit" class="section">
+    <div class="card">
+        <h2>⚡ Электрическая цепь</h2>
+        <p style="text-align:center; margin-bottom:30px; color:#7f8c8d; font-size:1.1rem;">Соответствие обозначений и реальных приборов:</p>
+        
+        <div class="circuit-guide-column">
+            <!-- Батарея -->
+            <div class="guide-row">
+                <div class="img-wrapper">
+                    <span class="guide-label">На схеме</span>
+                    <img src="ist_shema.jpg" alt="Символ Источник тока" class="img-symbol">
+                </div>
+                <div class="arrow-icon">➜</div>
+                <div class="img-wrapper">
+                    <span class="guide-label">В реальности</span>
+                    <img src="ist_s.jpg" alt="Источник тока в реальности" class="img-real">
+                </div>
+            </div>
+
+            <!-- Лампочка -->
+            <div class="guide-row">
+                <div class="img-wrapper">
+                    <span class="guide-label">На схеме</span>
+                    <img src="lamp_s.jpg" alt="Символ лампы" class="img-symbol">
+                </div>
+                <div class="arrow-icon">➜</div>
+                <div class="img-wrapper">
+                    <span class="guide-label">В реальности</span>
+                    <img src="lamp_r.jpg" alt="Лампа реальная" class="img-real">
+                </div>
+            </div>
+
+            <!-- Ключ -->
+            <div class="guide-row">
+                <div class="img-wrapper">
+                    <span class="guide-label">На схеме</span>
+                    <img src="kluch_s.jpg" alt="Символ ключа" class="img-symbol">
+                </div>
+                <div class="arrow-icon">➜</div>
+                <div class="img-wrapper">
+                    <span class="guide-label">В реальности</span>
+                    <img src="kluch_r.jpg" alt="Ключ реальный" class="img-real">
+                </div>
+            </div>
+
+            <!-- Амперметр -->
+            <div class="guide-row">
+                <div class="img-wrapper">
+                    <span class="guide-label">На схеме</span>
+                    <img src="amper_s.jpg" alt="Символ амперметра" class="img-symbol">
+                </div>
+                <div class="arrow-icon"></div>
+                <div class="img-wrapper">
+                    <span class="guide-label">В реальности</span>
+                    <img src="amper_r.jpg" alt="Амперметр реальный" class="img-real">
+                </div>
+            </div>
+
+            <!-- Вольтметр -->
+            <div class="guide-row">
+                <div class="img-wrapper">
+                    <span class="guide-label">На схеме</span>
+                    <img src="volt_s.jpg" alt="Символ вольтметра" class="img-symbol">
+                </div>
+                <div class="arrow-icon">➜</div>
+                <div class="img-wrapper">
+                    <span class="guide-label">В реальности</span>
+                    <img src="volt_r.jpg" alt="Вольтметр реальный" class="img-real">
+                </div>
+            </div>
+        </div>
+
+        <div class="full-circuit-wrapper">
+            <p style="font-weight:bold; color:var(--dark);">Общая схема собранной цепи:</p>
+            <img src="shema.jpg" alt="Полная схема" class="full-circuit-img">
+        </div>
+
+        <div class="quiz-box">
+            <div class="quiz-question">📐 Задача: Расчет сопротивления лампочки</div>
+            <p style="font-size:1.05rem;">Посмотрите на приборы в собранной цепи выше:</p>
+            <ul style="margin: 15px 0 15px 25px; color: var(--dark); font-size:1.05rem;">
+                <li>Вольтметр показывает Напряжение (U)</li>
+                <li>Амперметр показывает Силу тока (I)</li>
+            </ul>
+            <p style="font-size:1.05rem;"><b>Чему равно сопротивление R лампочки?</b></p>
+            <div class="hint">Закон Ома для участка цепи: I = U / R ⇒ R = U / I</div>
+        </div>
+    </div>
+</div>
+
+<!-- РАЗДЕЛ 3: ЛАЗЕР И ЗЕРКАЛО -->
+<div id="laser" class="section">
+    <div class="card">
+        <h2> Отражение света</h2>
+        <p style="font-size:1.05rem; margin-bottom:10px;">Двигайте ползунок, чтобы изменить угол падения. Загоните лазер внутрь магнита двигая только зеркала.</p>
+        
+        <div class="viz-container">
+            <canvas id="laserCanvas1" width="800" height="400"></canvas>
+        </div>
+        
+        <div class="controls">
+            <label style="font-weight:bold; font-size:1.1rem;">Угол падения: <span id="angleVal1">45</span>°</label>
+            <input type="range" id="angleSlider1" min="0" max="89" value="45" oninput="updateLaser1(this.value)" style="width:350px; accent-color:var(--primary);">
+        </div>
+
+        <div class="quiz-box" style="margin-top:40px;">
+            <div class="quiz-question">❓ Как связаны угол, под которым падает луч, и угол, под которым он отражается?</div>
+            <p style="color:#7f8c8d; font-size:1rem;">Ответьте устно, опираясь на визуализацию выше.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === ОБЩАЯ ЛОГИКА ТАБОВ ===
+    function switchTab(tabId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+        
+        if(tabId === 'laser') updateLaser1(45);
+    }
+
+    // === 1. ЛОГИКА НАСОСА ===
+    let pumpAnim = null;
+    let pumpPhase = 0; 
+    let pumpProg = 0;
+    const PUMP_SPEED = 0.008;
+
+    function togglePump() {
+        const btn = document.getElementById('pumpBtn');
+        if (pumpAnim) {
+            cancelAnimationFrame(pumpAnim);
+            pumpAnim = null;
+            btn.textContent = "▶ Запустить цикл";
+            btn.style.background = "var(--primary)";
+            resetPump();
+        } else {
+            pumpAnim = requestAnimationFrame(animatePump);
+            btn.textContent = "⏹ Стоп";
+            btn.style.background = "var(--accent)";
+        }
+    }
+
+    function resetPump() {
+        pumpProg = 0; pumpPhase = 0;
+        document.getElementById('plunger').setAttribute('transform', 'translate(0,0)');
+        document.getElementById('syringeWater').setAttribute('y', 140);
+        document.getElementById('syringeWater').setAttribute('height', 16);
+        document.getElementById('v1').style.transform = "rotate(0deg)";
+        document.getElementById('v2').style.transform = "rotate(0deg)";
+        ['arrIn','arrOut','arrExit'].forEach(id => document.getElementById(id).style.opacity = 0);
+        document.getElementById('stream').style.opacity = 0;
+    }
+
+    function animatePump() {
+        if (!pumpAnim) return;
+        pumpProg += PUMP_SPEED;
+        
+        const plunger = document.getElementById('plunger');
+        const water = document.getElementById('syringeWater');
+        const v1 = document.getElementById('v1');
+        const v2 = document.getElementById('v2');
+        
+        if (pumpPhase === 0) { // Вверх
+            const y = 140 - (pumpProg * 90);
+            plunger.setAttribute('transform', `translate(0, ${y-140})`);
+            water.setAttribute('y', y);
+            water.setAttribute('height', 16 + (pumpProg*90));
+            
+            if(pumpProg > 0.1) {
+                v1.style.transform = "rotate(-50deg)"; v2.style.transform = "rotate(0deg)";
+                document.getElementById('arrIn').style.opacity = 1;
+                document.getElementById('arrOut').style.opacity = 0;
+                document.getElementById('arrExit').style.opacity = 0;
+                document.getElementById('stream').style.opacity = 0;
+            }
+            if (pumpProg >= 1) { pumpProg = 0; pumpPhase = 1; }
+        } else { // Вниз
+            const y = 50 + (pumpProg * 90);
+            plunger.setAttribute('transform', `translate(0, ${y-140})`);
+            water.setAttribute('y', 50 + (pumpProg*70));
+            water.setAttribute('height', 106 - (pumpProg*90));
+            
+            if(pumpProg > 0.1) {
+                v1.style.transform = "rotate(0deg)"; v2.style.transform = "rotate(50deg)";
+                document.getElementById('arrIn').style.opacity = 0;
+                document.getElementById('arrOut').style.opacity = 1;
+                document.getElementById('arrExit').style.opacity = 1;
+                document.getElementById('stream').style.opacity = 1;
+            }
+            if (pumpProg >= 1) { 
+                pumpProg = 0; pumpPhase = 0; 
+                setTimeout(() => { if(pumpAnim) animatePump(); }, 300);
+                return;
+            }
+        }
+        pumpAnim = requestAnimationFrame(animatePump);
+    }
+
+    // === 3. ЛОГИКА ЛАЗЕРА ===
+    function updateLaser1(deg) {
+        document.getElementById('angleVal1').textContent = deg;
+        drawLaser1(parseInt(deg));
+    }
+
+    function drawLaser1(angleDeg) {
+        const cvs = document.getElementById('laserCanvas1');
+        const ctx = cvs.getContext('2d');
+        const w = cvs.width, h = cvs.height;
+        const mirrorY = h - 100;
+        const centerX = w / 2;
+
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.fillStyle = '#bdc3c7';
+        ctx.fillRect(centerX - 150, mirrorY, 300, 10);
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.strokeRect(centerX - 150, mirrorY, 300, 10);
+        
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(centerX, mirrorY);
+        ctx.lineTo(centerX, mirrorY - 200);
+        ctx.strokeStyle = '#95a5a6';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const rad = angleDeg * Math.PI / 180;
+        const rayLen = 250;
+
+        const startX = centerX - rayLen * Math.sin(rad);
+        const startY = mirrorY - rayLen * Math.cos(rad);
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(centerX, mirrorY);
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        drawArrowHead(ctx, startX, startY, centerX, mirrorY, '#e74c3c');
+
+        const endX = centerX + rayLen * Math.sin(rad);
+        const endY = mirrorY - rayLen * Math.cos(rad);
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, mirrorY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        drawArrowHead(ctx, centerX, mirrorY, endX, endY, '#e74c3c');
+
+        ctx.beginPath();
+        ctx.arc(centerX, mirrorY, 50, -Math.PI/2 - rad, -Math.PI/2);
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(centerX, mirrorY, 50, -Math.PI/2, -Math.PI/2 + rad);
+        ctx.stroke();
+    }
+
+    function drawArrowHead(ctx, fromX, fromY, toX, toY, color) {
+        const headlen = 12;
+        const angle = Math.atan2(toY - fromY, toX - fromX);
+        ctx.beginPath();
+        ctx.moveTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    resetPump();
+</script>
+
+</body>
+</html>
